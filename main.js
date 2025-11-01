@@ -3,7 +3,7 @@ const stx=scanvas.getContext("2d")
 const canvas=document.getElementById("canvas")
 const ctx=canvas.getContext("2d")
 let sprite=null
-let tilesize=8
+let tilesize=-1
 const fileinput=document.getElementById("fileinput")
 let processing=false
 const tileset=`
@@ -94,7 +94,8 @@ function cloneThird(t,c,x,y){
   stx.strokeRect(Math.floor(ox*tilesize+tilesize/3*(cx-1)),Math.floor(oy*tilesize+tilesize/3*(cy-1)),Math.ceil(tilesize/3),Math.ceil(tilesize/3))
 }
 async function autotile(){
-  if(processing){
+  if(processing||tilesize<=0){
+    setcout("no")
     return
   }
   processing=true
@@ -195,7 +196,7 @@ fileinput.addEventListener("change", async function(event) {
   scanvas.width=tilesize*5
   scanvas.height=tilesize*3
   drawSprite()
-  setcout("")
+  setcout("success: click generate to start generating")
   processing=false
 })
 
