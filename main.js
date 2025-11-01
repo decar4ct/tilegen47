@@ -5,7 +5,7 @@ const ctx=canvas.getContext("2d")
 let sprite=null
 let tilesize=8
 const fileinput=document.getElementById("fileinput")
-
+let processing=false
 const tileset=`
 003003300630013004300730223025302830
 303133313631313134315531473152315831
@@ -49,13 +49,14 @@ c0b141b142b143b144b145b1a6b147b198b1
 c0b241b2b2b243b244b245b2a6b247b248b2
 c0b341b3b2b343b344b345b346b347b398b3
 `
+function setcout(stri){
+  document.getElementById("cout").innerHTML=stri
+}
 function pause(ms) {
   return new Promise(resolve=>setTimeout(resolve,ms))
 }
 function drawSprite(){
-  scanvas.width=sprite.width
-  scanvas.height=sprite.height
-  stx.drawImage(sprite,0,0)
+  stx.putImageData(sprite,0,0)
 }
 
 async function rotclone(sx,sy,w,h,ex,ey,deg){
@@ -93,6 +94,10 @@ function cloneThird(t,c,x,y){
   stx.strokeRect(Math.floor(ox*tilesize+tilesize/3*(cx-1)),Math.floor(oy*tilesize+tilesize/3*(cy-1)),Math.ceil(tilesize/3),Math.ceil(tilesize/3))
 }
 async function autotile(){
+  if(processing){
+    return
+  }
+  processing=true
   ctx.fillStyle="black"
   ctx.fillRect(0,0,canvas.width,canvas.height)
   
@@ -106,10 +111,12 @@ async function autotile(){
       break
     }
     cloneThird(inst[0],inst[1],inst[2],inst[3])
+    setcout("generating..."+Math.min(100,Math.floor(i/(33*9)*1000)/10)+"%")
     i++
     await pause(1)
   }
   drawSprite()
+  processing=false
 }
 
 function render(){
@@ -117,20 +124,84 @@ function render(){
 }
 render()
 
-fileinput.addEventListener("change", async(e)=>{
-  const file=e.target.files[0]
-  const img=document.createElement("img")
+async function getWidth(){
+  let keep=true
+  let i=0
+  const imgd=stx.getImageData(0,0,scanvas.width,scanvas.height)
+  while(true){
+    keep=false
+    if(i>320){
+      return -1
+    }
+    for(let y=0;y<64;y++){
+      px=stx.getImageData(i,y,1,1).data
+      if(px[0]+px[1]+px[2]>=0.01){
+        keep=true
+      }
+    }
+    if(!keep){
+      return i
+    }
+    stx.fillStyle="red"
+    stx.fillRect(i,0,1,scanvas.height)
+    if(i%2==0)await pause(1)
+    stx.putImageData(imgd,0,0)
+    i++
+  }
+}
+
+fileinput.addEventListener("change", async function(event) {
+  if(processing){
+    return
+  }
+  processing=true
+  let ter=false
+  scanvas.height=64*3
+  scanvas.width=64*5
+  const file = event.target.files[0]
   const reader=new FileReader()
-  reader.onload=(event)=>{
-    img.src=event.target.result
-    console.log(img.src)
+  reader.onload=async function(e){
+    const img=new Image()
+    img.onload=function(){
+      stx.drawImage(img,0,0)
+    }
+    img.src=e.target.result
   }
   reader.readAsDataURL(file)
-  img.id="img"
-  sprite=img
-  canvas.width=sprite.width*12
-  canvas.height=sprite.height*4
-  tilesize=sprite.width/5
-  img.remove()
+  let w=0
+  while(true){
+    for(let i=0;i<=10;i++){
+      setcout("please wait..."+Math.floor(i/10*1000)/10+"%")
+      await pause(1)
+    }
+    setcout("scanning...")
+    if(await getWidth()>0){
+      break
+    }
+    w++
+    if(w>120){
+      setcout("ERROR")
+      ter=true
+      break
+    }
+  }
+  if(ter){
+    processing=false
+    return
+  }
+  const width=await getWidth()
+  tilesize=width/5
+  sprite=stx.getImageData(0,0,tilesize*5,tilesize*3)
+  scanvas.width=tilesize*5
+  scanvas.height=tilesize*3
   drawSprite()
+  setcout("")
+  processing=false
+})
+
+dbtn.addEventListener("click",()=>{
+  const link=document.createElement("a")
+  link.download="tilegen47.png"
+  link.href=canvas.toDataURL("image/png")
+  link.click()
 })
