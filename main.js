@@ -98,6 +98,8 @@ async function autotile(){
     setcout("no")
     return
   }
+  canvas.width=scanvas.width/5*12
+  canvas.height=scanvas.height/3*4
   processing=true
   ctx.fillStyle="black"
   ctx.fillRect(0,0,canvas.width,canvas.height)
